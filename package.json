@@ -1,0 +1,15 @@
+{
+  "name": "backend-mega-project",
+  "version": "1.0.0",
+  "description": "This is backend rich application",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "GARY",
+  "license": "MIT",
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "prettier": "^3.0.3"
+  }
+}
