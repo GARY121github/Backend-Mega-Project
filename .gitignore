@@ -120,4 +120,7 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
+# package-lock.json
+.package-lock.json
+
 # End of https://mrkandreev.name/snippets/gitignore-generator/#Node
