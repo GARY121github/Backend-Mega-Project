@@ -4,6 +4,23 @@ import ApiError from '../utils/ApiError.js';
 import ApiResponse from '../utils/ApiResponse.js';
 import uploadOnCloudinary from '../utils/Cloudinary.js';
 
+const generateTokens = async (userId) => {
+    try {
+        const user = await User.findById(userId);
+
+        const accessToken = await user.generateAccessToken();
+        const refreshToken = await user.generateRefreshToken();
+
+        user.refreshToken = refreshToken;
+        await user.save({ validateBeforeSave: false });
+
+        return { accessToken, refreshToken };
+
+    } catch (error) {
+        throw new ApiError(500, "Error generating tokens");
+    }
+}
+
 // Registration endpoint for creating a new user
 const registerUser = asyncHandler(async (req, res) => {
     // Destructuring relevant information from the request body
@@ -47,12 +64,12 @@ const registerUser = asyncHandler(async (req, res) => {
 
     // Creating a new user with the provided information
     const newUser = await User.create({
-        username : username.toLowerCase(),
+        username: username.toLowerCase(),
         email,
         fullName: fullName.toLowerCase(),
         password,
-        avatar : avatarUrl.url,
-        coverImage : coverImageUrl?.url
+        avatar: avatarUrl.url,
+        coverImage: coverImageUrl?.url
     });
 
     // Fetching the created user excluding sensitive information
@@ -69,7 +86,67 @@ const registerUser = asyncHandler(async (req, res) => {
     );
 })
 
-// Exporting the registerUser function for use in other parts of the application
+// Login endpoint for authenticating and generating tokens for a user
+const loginUser = asyncHandler(async (req, res) => {
+    // Destructuring relevant information from the request body
+    const { username, email, password } = req.body;
+
+    // Checking if either username or email is provided, as one of them is required
+    if (!username && !email) {
+        throw new ApiError(400, "Username or email is required");
+    }
+
+    // Finding a user based on the provided username or email
+    const user = await User.findOne({
+        $or: [
+            { username: username.toLowerCase() },
+            { email }
+        ]
+    });
+
+    // If no user is found, throwing an error indicating that the user does not exist
+    if (!user) {
+        throw new ApiError(400, "User does not exist");
+    }
+
+    // Verifying if the provided password matches the user's stored password
+    const isPasswordCorrect = await user.isPasswordCorrect(password);
+
+    // If the password is incorrect, throwing an error for invalid credentials
+    if (!isPasswordCorrect) {
+        throw new ApiError(400, "Invalid credentials");
+    }
+
+    // Generating access and refresh tokens for the authenticated user
+    const { accessToken, refreshToken } = generateTokens(user._id);
+
+    // Fetching the authenticated user excluding sensitive information
+    const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
+
+    // Configuration options for the HTTP-only and secured cookies
+    const options = {
+        httpOnly: true,
+        secure: true
+    }
+
+    // Responding with success status, setting cookies, and returning user details and tokens
+    return res
+        .status(200)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", refreshToken, options)
+        .json(
+            new ApiResponse(200, 
+                {
+                    user: loggedInUser,
+                    accessToken,
+                    refreshToken
+                }
+                , "User logged in successfully")
+        );
+})
+
+
 export {
     registerUser,
+    loginUser
 }
