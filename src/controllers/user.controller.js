@@ -2,6 +2,7 @@ import { User } from '../models/user.model.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import ApiError from '../utils/ApiError.js';
 import ApiResponse from '../utils/ApiResponse.js';
+import uploadOnCloudinary from '../utils/Cloudinary.js';
 
 // Registration endpoint for creating a new user
 const registerUser = asyncHandler(async (req, res) => {
@@ -28,8 +29,8 @@ const registerUser = asyncHandler(async (req, res) => {
     }
 
     // Retrieving avatar and cover image from the request files
-    const avatar = req.files?.avatar?.[0];
-    const coverImage = req.files?.coverImage?.[0];
+    const avatar = req.files?.avatar?.[0]?.path;
+    const coverImage = req.files?.coverImage?.[0]?.path;
 
     // Checking if the avatar is present, as it is required
     if (!avatar) {
@@ -37,9 +38,8 @@ const registerUser = asyncHandler(async (req, res) => {
     }
 
     // Uploading avatar and cover image to Cloudinary and obtaining their URLs
-    const avatarUrl = await uploadOnCloudinary(avatar).url;
-    const coverImageUrl = coverImage ? await uploadOnCloudinary(coverImage).url : null;
-
+    const avatarUrl = await uploadOnCloudinary(avatar);
+    const coverImageUrl = coverImage ? await uploadOnCloudinary(coverImage) : null;
     // Checking for errors during the avatar upload and throwing an error if needed
     if (!avatarUrl) {
         throw new ApiError(500, "Error uploading avatar");
@@ -47,12 +47,12 @@ const registerUser = asyncHandler(async (req, res) => {
 
     // Creating a new user with the provided information
     const newUser = await User.create({
-        username,
+        username : username.toLowerCase(),
         email,
-        fullName,
+        fullName: fullName.toLowerCase(),
         password,
-        avatarUrl,
-        coverImageUrl
+        avatar : avatarUrl.url,
+        coverImage : coverImageUrl?.url
     });
 
     // Fetching the created user excluding sensitive information
