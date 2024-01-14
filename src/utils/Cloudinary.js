@@ -20,7 +20,7 @@ const uploadOnCloudinary = async (localFilePath) => {
             resource_type: "auto",
             folder: FOLDER_NAME,
         });
-
+        
         // File has been uploaded successfully
         return uploadedResponse;
     } catch (error) {
