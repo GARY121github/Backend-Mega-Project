@@ -1,6 +1,7 @@
 import { v2 as cloudinary } from 'cloudinary';
 import fs from 'fs';
 import { FOLDER_NAME } from '../constant.js';
+import { ApiError } from './ApiError.js';
 
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -20,12 +21,12 @@ const uploadOnCloudinary = async (localFilePath) => {
             resource_type: "auto",
             folder: FOLDER_NAME,
         });
-        
+
         // File has been uploaded successfully
         return uploadedResponse;
     } catch (error) {
-        console.error("Error uploading to Cloudinary:", error);
-        throw error;
+        console.error("Error uploading to Cloudinary:", error.message);
+        throw new ApiError(501 , error.message);
     } finally {
         fs.unlinkSync(localFilePath); // Remove the locally saved temporary file
     }
@@ -33,11 +34,11 @@ const uploadOnCloudinary = async (localFilePath) => {
 
 const deleteFromCloudinary = async (url) => {
     try {
-        console.log("DELETE FROM CLOUDINARY FILE :: " , url);
+        console.log("DELETE FROM CLOUDINARY FILE :: ", url);
         if (!url) {
             throw new Error("Public url of the file is required to delete");
         }
-        
+
         const publicId = `${FOLDER_NAME}/${url.split('/').pop().split('.')[0]}`;
         const deletedFile = await cloudinary.uploader.destroy(publicId);
     }
