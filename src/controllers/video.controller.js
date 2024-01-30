@@ -9,7 +9,7 @@ import { deleteFromCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js
 
 const getAllVideos = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
-    
+
     //TODO: get all videos based on query, sort, pagination
 })
 
@@ -139,19 +139,19 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
 
     const video = await Video.findById(videoId);
 
-    if(!video){
+    if (!video) {
         throw new ApiError(400, "Invalid video to publish");
     }
 
     const toggledVideo = await Video.findByIdAndUpdate(
         videoId,
         {
-            $set : {
-                isPublished : !video.isPublished
+            $set: {
+                isPublished: !video.isPublished
             }
         },
         {
-            new : true,
+            new: true,
         }
     )
 
@@ -161,11 +161,52 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
     ))
 })
 
+const increaseVideoViews = asyncHandler(async (req, res) => {
+    const { videoId } = req.params;
+    const video = await Video.findByIdAndUpdate(
+        videoId,
+        {
+            $inc: {
+                views: 1
+            }
+        },
+        {
+            new: true
+        }
+    );
+
+    if (!video) {
+        throw new ApiError(400, "Invalid video")
+    }
+
+    return res.status(200).json(new ApiResponse(
+        200,
+        {},
+        "Video views has been increased successfully"
+    ))
+});
+
+const getRecommendedVideos = asyncHandler(async (req, res) => {
+    const videos = await Video.find({ isPublished: true })
+        .sort({ views: -1 })
+        .limit(5);
+
+    return res
+        .status(200)
+        .json(new ApiResponse(
+            200,
+            videos,
+            "Recommended videos has been fetched successfully"
+        ))
+})
+
 export {
     getAllVideos,
     publishAVideo,
     getVideoById,
     updateVideo,
     deleteVideo,
-    togglePublishStatus
+    togglePublishStatus,
+    increaseVideoViews,
+    getRecommendedVideos
 }

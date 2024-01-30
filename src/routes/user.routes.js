@@ -37,7 +37,7 @@ router.route('/login')
 // PROTECTED ROUTES
 
 router.route('/logout')
-    .post(verifyJWT, logoutUser);
+    .get(verifyJWT, logoutUser);
 
 router.route('/refresh-token')
     .post(verifyJWT, refreshAccessToken);
@@ -66,7 +66,7 @@ router.route('/cover-image')
     );
 
 router.route('/c/:username')
-    .get(verifyJWT, getUserChannelProfile);
+    .get(verifyJWT, getUserChannelProfile);                                                      
 
 router.route('/history')
     .get(verifyJWT, getWatchHistory);
