@@ -13,6 +13,35 @@ const getAllVideos = asyncHandler(async (req, res) => {
     //TODO: get all videos based on query, sort, pagination
 })
 
+const getUsersAllVideo = asyncHandler(async (req, res) => {
+    const { username } = req.params;
+    console.log(username);
+
+    const user = await User.findOne(
+        {
+            username : username
+        }
+    );
+
+    if(!user) {
+        throw new ApiError("400", "Invalid user");
+    }
+
+    const videos = await Video.find(
+        {
+            owner: user._id
+        }
+    );
+
+    return res
+    .status(200)
+    .json(new ApiResponse(
+        200,
+        videos,
+        "User's videos has been fetched successfully"
+    ))
+})
+
 const publishAVideo = asyncHandler(async (req, res) => {
     const { title, description } = req.body;
     const videoFilePath = req.files?.videoFile?.[0]?.path;
@@ -208,5 +237,6 @@ export {
     deleteVideo,
     togglePublishStatus,
     increaseVideoViews,
-    getRecommendedVideos
+    getRecommendedVideos,
+    getUsersAllVideo
 }

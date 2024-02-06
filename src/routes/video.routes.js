@@ -7,7 +7,8 @@ import {
     togglePublishStatus,
     updateVideo,
     increaseVideoViews,
-    getRecommendedVideos
+    getRecommendedVideos,
+    getUsersAllVideo
 } from "../controllers/video.controller.js"
 import { verifyJWT } from "../middlewares/auth.middleware.js"
 import { upload } from "../middlewares/multer.middleware.js"
@@ -44,5 +45,7 @@ router.route("/toggle/publish/:videoId").patch(togglePublishStatus);
 router.route("/:videoId/view").get(increaseVideoViews);
 
 router.route("/recommendations").get(getRecommendedVideos);
+
+router.route("/v/:username").get(getUsersAllVideo);
 
 export default router
