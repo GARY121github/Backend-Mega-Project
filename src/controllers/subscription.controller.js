@@ -109,50 +109,57 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
     }
 
     const subscribedChannels = await Subscription.aggregate([
-            {
-                $match: {
-                    subscriber: new mongoose.Types.ObjectId(channelId)
-                }
-            },
-            {
-                $lookup: {
-                    from: "users",
-                    localField: "channel",
-                    foreignField: "_id",
-                    as: "subscribedChannel"
-                }
-            },
-            {
-                $unwind: "$subscribedChannel"
-            },
-            {
-                $project: {
-                    _id: 0,
-                    subscriber: 0,
-                    channel: 0,
-                    updatedAt: 0,
-                    __v: 0,
-                    createdAt: 0,
-                    subscribedChannel: {
-                        __v: 0,
-                        refreshToken: 0,
-                        password: 0,
-                        watchHistory: 0,
-                        createdAt: 0,
-                        updatedAt: 0
-                    }
-                }
+        {
+            $match: {
+                subscriber: new mongoose.Types.ObjectId(channelId)
             }
-        ]);
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "channel",
+                foreignField: "_id",
+                as: "subscribedChannel"
+            }
+        },
+        {
+            $unwind: "$subscribedChannel"
+        },
+        {
+            $project: {
+                _id: 0,
+                subscriber: 0,
+                channel: 0,
+                updatedAt: 0,
+                __v: 0,
+                createdAt: 0,
+                "subscribedChannel.__v": 0,
+                "subscribedChannel.refreshToken": 0,
+                "subscribedChannel.password": 0,
+                "subscribedChannel.watchHistory": 0,
+                "subscribedChannel.createdAt": 0,
+                "subscribedChannel.updatedAt": 0
+            }
+        }
+    ]);
 
-    return res.
-        status(201).
-        json(new ApiResponse(
-            201,
-            subscribedChannels,
-            "Subscribed channels fetched successfully"
-        ));
+    // Extract only necessary fields from subscribedChannels
+    const subscribedChannelsArray = subscribedChannels.map(channel => ({
+        id: channel.subscribedChannel._id,
+        fullName: channel.subscribedChannel.fullName,
+        username: channel.subscribedChannel.username,
+        avatar: channel.subscribedChannel.avatar,
+        coverImage: channel.subscribedChannel.coverImage,
+        email: channel.subscribedChannel.email
+    }));
+
+    return res.status(201).json(new ApiResponse(
+        201,
+        subscribedChannelsArray,
+        "Subscribed channels fetched successfully"
+    ));
 })
+
 
 export {
     toggleSubscription,
