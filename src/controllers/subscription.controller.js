@@ -145,7 +145,7 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
 
     // Extract only necessary fields from subscribedChannels
     const subscribedChannelsArray = subscribedChannels.map(channel => ({
-        id: channel.subscribedChannel._id,
+        _id: channel.subscribedChannel._id,
         fullName: channel.subscribedChannel.fullName,
         username: channel.subscribedChannel.username,
         avatar: channel.subscribedChannel.avatar,
