@@ -68,13 +68,12 @@ const publishAVideo = asyncHandler(async (req, res) => {
             duration: video.duration
         }
     )
-
+    
     return res.status(201).json(new ApiResponse(
         201,
         {},
         "Video has been published successfully"
     ));
-    // TODO: get video, upload to cloudinary, create video
 })
 
 const getVideoById = asyncHandler(async (req, res) => {
@@ -186,7 +185,8 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
 
     return res.status(200).json(new ApiResponse(
         201,
-        toggledVideo
+        toggledVideo,
+        "Video has been toggled successfully"
     ))
 })
 
