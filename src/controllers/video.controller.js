@@ -15,31 +15,31 @@ const getAllVideos = asyncHandler(async (req, res) => {
 
 const getUsersAllVideo = asyncHandler(async (req, res) => {
     const { username } = req.params;
-    console.log(username);
 
     const user = await User.findOne(
         {
-            username : username
+            username: username
         }
     );
 
-    if(!user) {
+    if (!user) {
         throw new ApiError("400", "Invalid user");
     }
 
-    const videos = await Video.find(
-        {
-            owner: user._id
-        }
-    );
+    const videos = await Video.find({
+        owner: user._id,
+        isPublished: true
+    }).populate("owner", "username fullName avatar _id");
+
+    console.log(videos);
 
     return res
-    .status(200)
-    .json(new ApiResponse(
-        200,
-        videos,
-        "User's videos has been fetched successfully"
-    ))
+        .status(200)
+        .json(new ApiResponse(
+            200,
+            videos,
+            "User's videos has been fetched successfully"
+        ))
 })
 
 const publishAVideo = asyncHandler(async (req, res) => {
@@ -68,7 +68,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
             duration: video.duration
         }
     )
-    
+
     return res.status(201).json(new ApiResponse(
         201,
         {},
@@ -192,21 +192,27 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
 
 const increaseVideoViews = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
-    const video = await Video.findByIdAndUpdate(
-        videoId,
-        {
-            $inc: {
-                views: 1
-            }
-        },
-        {
-            new: true
-        }
-    );
 
+    const video = await Video.findById(videoId);
+
+    // Check if video exists
     if (!video) {
-        throw new ApiError(400, "Invalid video")
+        throw new ApiError(404, "Video not found");
     }
+
+    // Check if the video is owned by the user
+    if (video.owner.toString() === req.user._id.toString()) {
+        // If the video is owned by the user, return without incrementing views
+        return res.status(200).json(new ApiResponse(
+            200,
+            {},
+            "Video views were not incremented because it is owned by the user"
+        ));
+    }
+
+    // Increment views if the video is not owned by the user
+    video.views += 1;
+    await video.save();
 
     return res.status(200).json(new ApiResponse(
         200,
