@@ -10,8 +10,46 @@ import { deleteFromCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js
 const getAllVideos = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
 
-    //TODO: get all videos based on query, sort, pagination
-})
+    let filter = {};
+    let sort = {};
+
+    if (query) {
+        filter.$or = [
+            { title: { $regex: query, $options: 'i' } }, // Case-insensitive search for title
+            { description: { $regex: query, $options: 'i' } } // Case-insensitive search for description
+        ];
+    }
+
+    if (userId) {
+        filter.owner = userId;
+    }
+
+    if (sortBy && sortType) {
+        sort[sortBy] = sortType === 'desc' ? -1 : 1;
+    } else {
+        sort.createdAt = -1;
+    }
+
+    try {
+        const videos = await Video.find(filter)
+            .sort(sort)
+            .skip((page - 1) * limit)
+            .limit(parseInt(limit))
+            .populate('owner', 'username fullName avatar _id');
+
+        return res.status(200).json(new ApiResponse(
+            200,
+            { videos },
+            "Videos retrieved successfully"
+        ));
+    } catch (error) {
+        return res.status(500).json(new ApiResponse(
+            500,
+            {},
+            "Internal Server Error"
+        ));
+    }
+});
 
 const getUsersAllVideo = asyncHandler(async (req, res) => {
     const { username } = req.params;
@@ -30,8 +68,6 @@ const getUsersAllVideo = asyncHandler(async (req, res) => {
         owner: user._id,
         isPublished: true
     }).populate("owner", "username fullName avatar _id");
-
-    console.log(videos);
 
     return res
         .status(200)
@@ -90,7 +126,6 @@ const getVideoById = asyncHandler(async (req, res) => {
         video,
         "Video has been fetched successfully"
     ));
-    //TODO: get video by id
 })
 
 const updateVideo = asyncHandler(async (req, res) => {
@@ -133,8 +168,6 @@ const updateVideo = asyncHandler(async (req, res) => {
         updatedVideo,
         "Video has been updated successfully"
     ));
-    //TODO: update video details like title, description, thumbnail
-
 })
 
 const deleteVideo = asyncHandler(async (req, res) => {
@@ -159,7 +192,6 @@ const deleteVideo = asyncHandler(async (req, res) => {
         {},
         "Video has been deleted successfully"
     ));
-    //TODO: delete video
 })
 
 const togglePublishStatus = asyncHandler(async (req, res) => {
