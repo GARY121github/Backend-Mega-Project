@@ -4,36 +4,87 @@ import { ApiError } from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import { asyncHandler } from "../utils/asyncHandler.js"
 
-const toggleVideoLike = asyncHandler(async (req, res) => {
-    const { videoId } = req.params
+const getVideoLikes = asyncHandler(async (req, res) => {
+    const { videoId } = req.params;
+    const userId = req.user._id;
+
     if (!isValidObjectId(videoId)) {
-        throw new ApiError(400, "Invalid video id while toggling like on video")
+        throw new ApiError(400, "Invalid video id while fetching likes on video")
     }
 
-    const toggleLike = await Like.findOne({
+    const result = await Like.aggregate([
+        {
+            $match: {
+                video: new mongoose.Types.ObjectId(videoId)
+            }
+        },
+        {
+            $group: {
+                _id: null,
+                totalLikes: { $sum: 1 },
+                isLikedByUser: {
+                    $sum: {
+                        $cond: {
+                            if: { $eq: ["$likedBy", userId] },
+                            then: 1,
+                            else: 0
+                        }
+                    }
+                }
+            }
+        }
+    ]);
+
+    let likesInfo;
+    if (result.length === 0) {
+        // If no likes found, set totalLikes to 0 and isLikedByUser to false
+        likesInfo = {
+            totalLikes: 0,
+            isLikedByUser: false
+        };
+    } else {
+        likesInfo = {
+            totalLikes: result[0].totalLikes,
+            isLikedByUser: result[0].isLikedByUser === 1
+        }
+    }
+    
+    return res.status(200).json(new ApiResponse(
+        200,
+        likesInfo,
+        "Likes on video fetched successfully"
+    ));
+});
+
+
+
+const toggleVideoLike = asyncHandler(async (req, res) => {
+    const { videoId } = req.params;
+    const userId = req.user._id;
+
+    if (!isValidObjectId(videoId)) {
+        throw new ApiError(400, "Invalid video id while toggling like on video");
+    }
+
+    const toggleLike = await Like.findOneAndDelete({
         video: videoId,
-        likedBy: req.user._id
+        likedBy: userId
     });
 
     if (!toggleLike) {
         await Like.create({
             video: videoId,
-            likedBy: req.user._id
+            likedBy: userId
         });
     }
-    else {
-        await Like.findByIdAndDelete(toggleLike._id);
-    }
 
-    return res.
-        status(201).
-        json(new ApiResponse(
-            201,
-            {},
-            "Video Liked toggled successfully"
-        ))
-    //TODO: toggle like on video
-})
+    return res.status(200).json(new ApiResponse(
+        200,
+        {},
+        "Video like toggled successfully"
+    ));
+});
+
 
 const toggleCommentLike = asyncHandler(async (req, res) => {
     const { commentId } = req.params
@@ -136,5 +187,6 @@ export {
     toggleCommentLike,
     toggleTweetLike,
     toggleVideoLike,
-    getLikedVideos
+    getLikedVideos,
+    getVideoLikes
 }

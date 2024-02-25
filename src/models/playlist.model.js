@@ -10,6 +10,10 @@ const playlistSchema = new Schema(
             type: String,
             required: true
         },
+        thumbnail: {
+            type: String, // cloudinary url
+            required: true
+        },
         videos: [
             {
                 type: Schema.Types.ObjectId,

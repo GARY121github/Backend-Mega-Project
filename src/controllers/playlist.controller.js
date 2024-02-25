@@ -1,21 +1,36 @@
-import mongoose, { isValidObjectId } from "mongoose"
+import { isValidObjectId } from "mongoose"
 import { Playlist } from "../models/playlist.model.js"
 import { ApiError } from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import { asyncHandler } from "../utils/asyncHandler.js"
+import { Video } from "../models/video.model.js"
+import { uploadOnCloudinary, deleteFromCloudinary } from '../utils/Cloudinary.js';
 
 
 const createPlaylist = asyncHandler(async (req, res) => {
     const { name, description } = req.body
 
+    const thumbnailLocalPath = req.file?.path;
+
+    if (!thumbnailLocalPath) {
+        throw new ApiError(400, "Thumbnail is required")
+    }
+
     if (!name.trim() || !description.trim()) {
         throw new ApiError(400, "Name and description are required")
+    }
+
+    const playlistThumbnailURL = await uploadOnCloudinary(thumbnailLocalPath);
+
+    if (!playlistThumbnailURL) {
+        throw new ApiError(500, "Failed to upload thumbnail of playlist to cloudinary");
     }
 
     await Playlist.create({
         name,
         description,
-        owner: req.user._id
+        owner: req.user._id,
+        thumbnail: playlistThumbnailURL.url
     })
 
     return res.
@@ -25,7 +40,6 @@ const createPlaylist = asyncHandler(async (req, res) => {
             {},
             "New Playlist created successfully"
         ));
-    //TODO: create playlist
 })
 
 const getUserPlaylists = asyncHandler(async (req, res) => {
@@ -48,7 +62,6 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
             playlists,
             "User's playlists fetched successfully"
         ))
-    //TODO: get user playlists
 })
 
 const getPlaylistById = asyncHandler(async (req, res) => {
@@ -65,7 +78,6 @@ const getPlaylistById = asyncHandler(async (req, res) => {
             playlist,
             "Playlist fetched successfully"
         ));
-    //TODO: get playlist by id
 })
 
 const addVideoToPlaylist = asyncHandler(async (req, res) => {
@@ -85,11 +97,11 @@ const addVideoToPlaylist = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Video not found while adding video to playlist");
     }
 
-    await Playlist.findByIdAndUpdate(playlistId, {
+    const play = await Playlist.findByIdAndUpdate(playlistId, {
         $addToSet: {
             videos: videoId
         }
-    })
+    });
 
     return res.
         status(201).
@@ -134,8 +146,6 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
             {},
             "Video removed from playlist successfully"
         ))
-    // TODO: remove video from playlist
-
 })
 
 const deletePlaylist = asyncHandler(async (req, res) => {
@@ -155,7 +165,10 @@ const deletePlaylist = asyncHandler(async (req, res) => {
         throw new ApiError(403, "You are not authorized to delete this playlist")
     }
 
+    const playlistThumbnailPublicId = playlist.thumbnail;
+
     await Playlist.findByIdAndDelete(playlistId);
+    await deleteFromCloudinary(playlistThumbnailPublicId);
 
     return res.
         status(201).
@@ -164,7 +177,6 @@ const deletePlaylist = asyncHandler(async (req, res) => {
             {},
             "Playlist deleted successfully"
         ));
-    // TODO: delete playlist
 })
 
 const updatePlaylist = asyncHandler(async (req, res) => {
@@ -196,8 +208,7 @@ const updatePlaylist = asyncHandler(async (req, res) => {
             201,
             {},
             "Playlist updated successfully"
-        ))
-    //TODO: update playlist
+        ));
 })
 
 export {
