@@ -66,19 +66,28 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
 
 const getPlaylistById = asyncHandler(async (req, res) => {
     const { playlistId } = req.params;
-    const playlist = await Playlist.findById(playlistId).populate("videos");
+    const playlist = await Playlist.findById(playlistId)
+        .populate({
+            path: 'owner',
+            select: '-password -refreshToken -accessToken -watchHistory -email -createdAt -updatedAt -__v' // Exclude sensitive fields from the owner document
+        })
+        .populate({
+            path: 'videos',
+            match: { isPublished: true },
+            select: "-owner"
+        });
+
     if (!playlist) {
         throw new ApiError(404, "Playlist not found");
     }
 
-    return res.
-        status(200).
-        json(new ApiResponse(
-            200,
-            playlist,
-            "Playlist fetched successfully"
-        ));
-})
+    return res.status(200).json(new ApiResponse(
+        200,
+        playlist,
+        "Playlist fetched successfully"
+    ));
+});
+
 
 const addVideoToPlaylist = asyncHandler(async (req, res) => {
     const { playlistId, videoId } = req.params;
