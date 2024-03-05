@@ -48,7 +48,7 @@ const getVideoLikes = asyncHandler(async (req, res) => {
             isLikedByUser: result[0].isLikedByUser === 1
         }
     }
-    
+
     return res.status(200).json(new ApiResponse(
         200,
         likesInfo,
@@ -152,7 +152,6 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
 )
 
 const getLikedVideos = asyncHandler(async (req, res) => {
-    //TODO: get all liked videos
     const likedVideos = await Like.aggregate([
         {
             $match: {
@@ -164,21 +163,45 @@ const getLikedVideos = asyncHandler(async (req, res) => {
                 from: "videos",
                 localField: "video",
                 foreignField: "_id",
-                as: "LikedVideos"
+                as: "likedVideos"
             }
         },
         {
-
-            $unwind: "$LikedVideos"
-
+            $unwind: "$likedVideos"
+        },
+        {
+            $lookup: {
+                from: "users", // Assuming the collection name is "users"
+                localField: "likedVideos.owner",
+                foreignField: "_id",
+                as: "owner"
+            }
+        },
+        {
+            $unwind: "$owner"
+        },
+        {
+            $project: {
+                "owner.refreshToken": 0,
+                "owner.password": 0,
+                "owner.email": 0,
+                "owner.__v": 0,
+                "owner.createdAt": 0,
+                "owner.updatedAt": 0,
+                "owner.watchHistory": 0,
+                "owner.coverImage": 0,
+            }
+        },
+        {
+            $replaceRoot: { newRoot: { $mergeObjects: ["$likedVideos", { owner: "$owner" }] } }
         }
-    ])
+    ]);
 
     return res.
         status(200).
         json(new ApiResponse(
             200,
-            LikedVideos = likedVideos[0],
+            likedVideos,
             "Liked Videos Fetched Successfully"
         ))
 })
