@@ -1,4 +1,4 @@
-import mongoose, { isValidObjectId } from "mongoose"
+import { isValidObjectId } from "mongoose"
 import { Video } from "../models/video.model.js"
 import { User } from "../models/user.model.js"
 import { ApiError } from "../utils/ApiError.js"
@@ -227,12 +227,10 @@ const increaseVideoViews = asyncHandler(async (req, res) => {
 
     const video = await Video.findById(videoId);
 
-    // Check if video exists
     if (!video) {
         throw new ApiError(404, "Video not found");
     }
 
-    // Check if the video is owned by the user
     if (video.owner.toString() === req.user._id.toString()) {
         // If the video is owned by the user, return without incrementing views
         return res.status(200).json(new ApiResponse(
@@ -245,6 +243,16 @@ const increaseVideoViews = asyncHandler(async (req, res) => {
     // Increment views if the video is not owned by the user
     video.views += 1;
     await video.save();
+
+    // ADD VIDEO INTO USER'S WATCH HISTORY
+    // Assuming videoId is a string representing the ID of the video
+    req.user.watchHistory.push(videoId); // Add videoId to the watchHistory array
+
+    // Remove duplicates by converting to a Set and back to an array
+    req.user.watchHistory = [...new Set(req.user.watchHistory)];
+
+    // Save the updated user document
+    await req.user.save();
 
     return res.status(200).json(new ApiResponse(
         200,
