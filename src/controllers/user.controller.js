@@ -75,17 +75,39 @@ const registerUser = asyncHandler(async (req, res) => {
     });
 
     // Fetching the created user excluding sensitive information
-    const user = await User.findById(newUser._id).select("-password -refreshToken");
+    const user = await User.findById(newUser._id);
 
     // Checking if the user was successfully created and throwing an error if not
     if (!user) {
         throw new ApiError(500, "Error creating user");
     }
 
+    // Generating access and refresh tokens for the authenticated user
+    const { accessToken, refreshToken } = await generateTokens(user._id);
+
+    // Fetching the authenticated user excluding sensitive information
+    const registerUser = await User.findById(user._id).select("-password -watchHistory -refreshToken -accessToken");
+
+    // Configuration options for the HTTP-only and secured cookies
+    const options = {
+        httpOnly: true,
+        secure: true
+    }
+
     // Responding with a success status and the created user details
-    return res.status(201).json(
-        new ApiResponse(201, user, "User created successfully")
-    );
+    return res
+        .status(201)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", refreshToken, options)
+        .json(new ApiResponse(
+            201,
+            {
+                user: registerUser,
+                accessToken,
+                refreshToken
+            },
+            "User created successfully")
+        );
 })
 
 // Login endpoint for authenticating and generating tokens for a user
@@ -123,7 +145,7 @@ const loginUser = asyncHandler(async (req, res) => {
     const { accessToken, refreshToken } = await generateTokens(user._id);
 
     // Fetching the authenticated user excluding sensitive information
-    const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
+    const loggedInUser = await User.findById(user._id).select("-password -refreshToken -watchHistory");
 
     // Configuration options for the HTTP-only and secured cookies
     const options = {
