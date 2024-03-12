@@ -2,25 +2,27 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { fileURLToPath } from 'url';
-import path from 'path'; // Import the path module to work with file paths
+import path from 'path';
 
+// Define __filename and __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Create an Express app
 const app = express();
 
+// Serve the 'utils' folder as static
+app.use('/utils', express.static(path.join(__dirname, 'utils')));
+
+// Other middleware setup
 app.use(cors({
     origin: process.env.CORS_ORIGIN,
     credentials: true
 }));
-
 app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static('public'));
 app.use(cookieParser());
-
-// Define the directory where the routes are located
-const routesDir = path.join(__dirname, 'routes'); // Get the absolute path to the routes directory
 
 // Import routes using import
 import userRouter from './routes/user.routes.js';
