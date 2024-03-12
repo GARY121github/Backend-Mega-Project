@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon -r dotenv/config --experimental-json-modules ./src/index.js",
-    "start" : "node ./src/index.js"
+    "start": "pm2-runtime start ./src/index.js --env-file .env"
   },
   "author": "GARY",
   "license": "MIT",
