@@ -16,39 +16,43 @@ const getVideoComments = asyncHandler(async (req, res) => {
     }
 
     const aggregateOptions = [
-        {
-            $match: {
-                video: new mongoose.Types.ObjectId(videoId),
-            },
+      {
+        $match: {
+          video: new mongoose.Types.ObjectId(videoId),
         },
-        {
-            $sort: { createdAt: -1 }, // Sort by createdAt in descending order (newest first)
+      },
+      {
+        $sort: { createdAt: -1 }, // Sort by createdAt in descending order (newest first)
+      },
+      {
+        $skip: (page - 1) * limit,
+      },
+      {
+        $limit: parseInt(limit),
+      },
+      {
+        $lookup: {
+          from: "users", // Assuming the User collection name is 'users'
+          localField: "owner",
+          foreignField: "_id",
+          as: "owner",
         },
-        {
-            $skip: (page - 1) * limit,
+      },
+      {
+        $unwind: "$owner", // Unwind the array created by $lookup
+      },
+      {
+        $project: {
+          "owner.password": 0,
+          "owner.email": 0,
+          "owner.createdAt": 0,
+          "owner.updatedAt": 0,
+          "owner.__v": 0,
+          "owner.refreshToken": 0,
+          "owner.coverImage": 0,
+          "owner.watchHistory": 0,
         },
-        {
-            $limit: parseInt(limit),
-        },
-        {
-            $lookup: {
-                from: "users", // Assuming the User collection name is 'users'
-                localField: "owner",
-                foreignField: "_id",
-                as: "user",
-            },
-        },
-        {
-            $unwind: "$user", // Unwind the array created by $lookup
-        },
-        {
-            $project: {
-                _id: 1,
-                content: 1,
-                createdAt: 1,
-                user: { _id: 1, username: 1, email: 1 , avatar: 1 }, // Select user fields you want to include
-            },
-        },
+      },
     ];
 
     const comments = await Comment.aggregate(aggregateOptions);
